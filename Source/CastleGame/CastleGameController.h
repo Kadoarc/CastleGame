@@ -26,7 +26,7 @@ public:
 	bool AddItemToInventoryByID(FName ID);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-		class AInteractable* CurrentInteractable;
+	class AInteractable* CurrentInteractable;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TArray<FInventoryItem> Inventory;

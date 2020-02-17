@@ -23,10 +23,10 @@ public:
 	FText Name;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		UTexture2D* Thumbnail;
+	UTexture2D* Thumbnail;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FText Description;
+	FText Description;
 
 	bool operator==(const FInventoryItem& OtherItem) const
 	{
