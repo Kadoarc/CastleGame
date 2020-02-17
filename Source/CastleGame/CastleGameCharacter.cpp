@@ -8,6 +8,11 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Interactable.h"
+#include "AutoPickup.h"
+#include "InventoryItem.h"
+#include "CastleGameController.h"
+
 
 //////////////////////////////////////////////////////////////////////////
 // ACastleGameCharacter
@@ -43,8 +48,69 @@ ACastleGameCharacter::ACastleGameCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
+
+	CollectionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CollectionSphere"));
+	CollectionSphere->SetupAttachment(RootComponent);
+	CollectionSphere->SetSphereRadius(200.0f);
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
+}
+
+void ACastleGameCharacter::Tick(float Deltatime)
+{
+	Super::Tick(Deltatime);
+	CollectAutoPickups();
+	CheckForInteractables();
+}
+
+void ACastleGameCharacter::CollectAutoPickups()
+{
+	TArray<AActor*> CollectedActors;
+	CollectionSphere->GetOverlappingActors(CollectedActors);
+
+	ACastleGameController* IController = Cast<ACastleGameController>(GetController());
+
+	for (int32 iCollected = 0; iCollected < CollectedActors.Num(); ++iCollected)
+	{
+		AAutoPickup* const TestPickup = Cast<AAutoPickup>(CollectedActors[iCollected]);
+
+		if (TestPickup && !TestPickup->IsPendingKill())
+		{
+			TestPickup->Collect(IController);
+		}
+	}
+}
+void ACastleGameCharacter::CheckForInteractables()
+{
+	// Create a LineTrace to check for a hit
+	FHitResult HitResult;
+
+	int32 Range = 500;
+	FVector StartTrace = FollowCamera->GetComponentLocation();
+	FVector EndTrace = (FollowCamera->GetForwardVector() * Range) + StartTrace;
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+
+	ACastleGameController* IController = Cast<ACastleGameController>(GetController());
+
+	if (IController)
+	{
+		// Check if something is hit
+		if (GetWorld()->LineTraceSingleByChannel(HitResult, StartTrace, EndTrace, ECC_Visibility, QueryParams))
+		{
+			// Cast the actor to AInteractable
+			AInteractable* Interactable = Cast<AInteractable>(HitResult.GetActor());
+			// If the cast is successful
+			if (Interactable)
+			{
+				IController->CurrentInteractable = Interactable;
+				return;
+			}
+		}
+
+		IController->CurrentInteractable = nullptr;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
